@@ -194,7 +194,7 @@ export default async function DashboardPage() {
                     <div>
                       <div className="text-2xl font-bold tracking-tight text-slate-950 group-hover:text-primary transition-colors">{project.brandName || "Untitled"}</div>
                       <p className="mt-3 max-w-xl text-base leading-relaxed text-slate-600 line-clamp-2 italic">
-                        "{project.tagline || (project as any).startupIdea}"
+                        &quot;{project.tagline || (project as any).startupIdea}&quot;
                       </p>
                       <div className="mt-5 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-400">
                         <span className="flex items-center gap-2">

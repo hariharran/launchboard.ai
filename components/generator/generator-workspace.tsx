@@ -1,14 +1,11 @@
 "use client";
 
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+// import Link from "next/link";
 import {
   Check,
   CheckCircle2,
   Copy,
-  Code2,
-  Crown,
-  Download,
   RefreshCcw,
   Globe2,
   LayoutTemplate,
@@ -18,17 +15,13 @@ import {
   Smartphone,
   Maximize2,
   X,
-  FileCode,
-  SearchCheck,
-  Search,
   Sparkles,
   WandSparkles,
   ExternalLink,
   Palette,
-  FileText,
 } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { demoGeneratedSite } from "@/lib/demo-generated-site";
 import { runSeoQuickCheck } from "@/lib/seo/checker";
 import { cn } from "@/lib/utils";
@@ -201,7 +194,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
   const [hasCompletedGeneration, setHasCompletedGeneration] = useState(Boolean(initialProject));
   const [activePreviewPage, setActivePreviewPage] = useState("home");
   const [previewDevice, setPreviewDevice] = useState<"Desktop" | "Tablet" | "Mobile">("Desktop");
-  const [presentationMode, setPresentationMode] = useState(false);
+  // const [presentationMode, setPresentationMode] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [generatedSite, setGeneratedSite] = useState<AIGenerationResponse>(initialGeneratedSite);
   const [savedProject, setSavedProject] = useState<PersistedProjectDetail | null>(initialProject);
