@@ -6,3 +6,4 @@ dist
 coverage
 *.log
 generated
+.next-dev
