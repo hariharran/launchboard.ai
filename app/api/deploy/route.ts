@@ -5,11 +5,11 @@ export async function POST(req: Request) {
   try {
     const { site, brandName } = await req.json();
 
-    const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
-    const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
+    const VERCEL_TOKEN = process.env.CLIENT_DEPLOY_TOKEN;
+    const VERCEL_TEAM_ID = process.env.CLIENT_DEPLOY_TEAM_ID;
 
     if (!VERCEL_TOKEN) {
-      throw new Error("VERCEL_TOKEN is not configured in environment variables.");
+      throw new Error("VERCEL-TOKEN is not configured in environment variables.");
     }
 
     // 1. Prepare the files for Vercel
@@ -27,9 +27,9 @@ export async function POST(req: Request) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-") // Only alphanumeric and hyphens
       .replace(/^-+|-+$/g, "");    // Remove leading/trailing hyphens
-    
+
     const queryParams = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : "";
-    
+
     const response = await fetch(`https://api.vercel.com/v13/deployments${queryParams}`, {
       method: "POST",
       headers: {

@@ -1,4 +1,4 @@
-// File: /Users/apple/Documents/hackathon/app/(app)/layout.tsx
+// File: /Users/apple/Documents/launchboard.ai/app/(app)/layout.tsx
 import * as entry from '../../../../app/(app)/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

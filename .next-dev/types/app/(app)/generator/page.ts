@@ -1,4 +1,4 @@
-// File: /Users/apple/Documents/hackathon/app/(app)/generator/page.tsx
+// File: /Users/apple/Documents/launchboard.ai/app/(app)/generator/page.tsx
 import * as entry from '../../../../../app/(app)/generator/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
