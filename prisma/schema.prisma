@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectStatus {
+  DRAFT
+  GENERATED
+  EDITING
+  READY_TO_EXPORT
+  ARCHIVED
+}
+
+enum OutputMode {
+  LANDING_PAGE
+  MULTI_PAGE
+  EXPORT_CODE
+}
+
+enum TemplateType {
+  SAAS
+  AGENCY
+  STARTUP
+  PORTFOLIO
+  ECOMMERCE
+  CUSTOM
+}
+
+enum ChangeType {
+  INITIAL_GENERATION
+  CONTENT_EDIT
+  DESIGN_EDIT
+  SEO_UPDATE
+  DOMAIN_REFRESH
+  REGENERATE_SECTION
+  MANUAL_OVERRIDE
+}
+
+enum DomainAvailability {
+  AVAILABLE
+  TAKEN
+  UNKNOWN
+}
+
+enum BillingPlan {
+  FREE
+  PRO
+  TEAM
+  ENTERPRISE
+}
+
+model User {
+  id                String      @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId           String      @unique
+  name              String?
+  email             String      @unique
+  billingPlan       BillingPlan @default(FREE)
+  billingCustomerId String?     @unique
+  usageMetadata     Json?
+  projects          Project[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Project {
+  id              String              @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String              @db.ObjectId
+  user            User                @relation(fields: [userId], references: [id])
+  startupIdea     String
+  selectedStyle   String?
+  preferredDomain String?
+  brandName       String?
+  tagline         String?
+  audience        String?
+  tone            String?
+  styleDirection  String?
+  palette         Json?
+  templateType    TemplateType        @default(STARTUP)
+  outputMode      OutputMode          @default(LANDING_PAGE)
+  siteMap         Json?
+  seoScore        Int?
+  seoSummary      Json?
+  aiMetadata      Json?
+  generatedPages  GeneratedPage[]
+  editHistory     EditHistory[]
+  domainChecks    DomainCheck[]
+  status          ProjectStatus       @default(DRAFT)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([status])
+}
+
+model GeneratedPage {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId     String   @db.ObjectId
+  project       Project  @relation(fields: [projectId], references: [id])
+  slug          String
+  title         String
+  html          String
+  structureJson Json
+  aiMetadata    Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+}
+
+model EditHistory {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  projectId  String     @db.ObjectId
+  project    Project    @relation(fields: [projectId], references: [id])
+  prompt     String?
+  changeType ChangeType
+  snapshot   Json
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([changeType])
+}
+
+model DomainCheck {
+  id           String             @id @default(auto()) @map("_id") @db.ObjectId
+  projectId    String             @db.ObjectId
+  project      Project            @relation(fields: [projectId], references: [id])
+  domain       String
+  extension    String
+  availability DomainAvailability @default(UNKNOWN)
+  price        Float?
+  isPremium    Boolean            @default(false)
+  checkedAt    DateTime           @default(now())
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([projectId, checkedAt])
+  @@index([domain, extension])
+}
