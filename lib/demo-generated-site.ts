@@ -1,5 +1,340 @@
 import type { AIGenerationResponse } from "@/types/ai";
 
+function buildDemoNav(activeSlug: string) {
+  const items = [
+    { slug: "home", label: "Home" },
+    { slug: "features", label: "How It Works" },
+    { slug: "pricing", label: "Pricing" },
+    { slug: "about", label: "About" },
+    { slug: "contact", label: "Contact" },
+    { slug: "faq", label: "FAQ" },
+  ];
+
+  return items
+    .map((item) => {
+      const href = item.slug === "home" ? "/" : `/${item.slug}`;
+      const activeClass = item.slug === activeSlug ? "nav-link nav-link-active" : "nav-link";
+      const current = item.slug === activeSlug ? ' aria-current="page"' : "";
+      return `<a class="${activeClass}" href="${href}"${current}>${item.label}</a>`;
+    })
+    .join("");
+}
+
+function buildDemoHtml({
+  slug,
+  title,
+  description,
+  kicker,
+  eyebrow,
+  ctaLabel,
+  ctaHref,
+}: {
+  slug: string;
+  title: string;
+  description: string;
+  kicker: string;
+  eyebrow: string;
+  ctaLabel: string;
+  ctaHref: string;
+}) {
+  const nav = buildDemoNav(slug);
+  const pageTitle = slug === "home" ? "Ledgerlane | Home" : `Ledgerlane | ${title}`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="${description}" />
+    <title>${pageTitle}</title>
+    <style>
+      :root {
+        --ink: #0f172a;
+        --muted: #64748b;
+        --surface: #f8fafc;
+        --card: #ffffff;
+        --line: rgba(15, 23, 42, 0.1);
+        --primary: #0f172a;
+        --secondary: #2563eb;
+        --accent: #f59e0b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
+          radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 26%),
+          linear-gradient(180deg, #eef4ff 0%, #f8fafc 38%, #ffffff 100%);
+        color: var(--ink);
+      }
+      a { color: inherit; text-decoration: none; }
+      .shell {
+        max-width: 1260px;
+        margin: 28px auto;
+        padding: 0 20px 48px;
+      }
+      .frame {
+        overflow: hidden;
+        border-radius: 36px;
+        border: 1px solid rgba(255,255,255,0.72);
+        background: rgba(255,255,255,0.82);
+        box-shadow: 0 36px 100px rgba(15, 23, 42, 0.12);
+        backdrop-filter: blur(16px);
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 28px 32px;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        font-size: 18px;
+      }
+      .brand-mark {
+        width: 62px;
+        height: 62px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        color: white;
+        font-size: 28px;
+        background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%);
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .nav-link {
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .nav-link-active {
+        color: var(--primary);
+        background: rgba(37, 99, 235, 0.1);
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.14);
+      }
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 22px;
+        border-radius: 999px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 100%);
+        color: white;
+      }
+      .main {
+        padding: 28px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+        gap: 22px;
+      }
+      .card {
+        border-radius: 30px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.84));
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.07);
+      }
+      .hero-copy {
+        padding: 34px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.9);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 22px 0 16px;
+        font-size: clamp(3.3rem, 7vw, 6rem);
+        line-height: 0.92;
+        letter-spacing: -0.07em;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+        line-height: 1.8;
+      }
+      .actions {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-top: 28px;
+      }
+      .ghost {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 22px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--primary);
+        font-weight: 800;
+      }
+      .spotlight {
+        padding: 28px;
+        background: linear-gradient(160deg, #0f172a 0%, #1d4ed8 55%, #f59e0b 160%);
+        color: white;
+      }
+      .spotlight .label {
+        color: rgba(255,255,255,0.72);
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .spotlight h2 {
+        margin: 14px 0 12px;
+        font-size: 2rem;
+        line-height: 1;
+        letter-spacing: -0.05em;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 22px;
+      }
+      .metric {
+        border-radius: 22px;
+        background: rgba(255,255,255,0.12);
+        padding: 18px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 1.4rem;
+      }
+      .metric span {
+        display: block;
+        margin-top: 8px;
+        color: rgba(255,255,255,0.75);
+        font-size: 0.92rem;
+      }
+      .section-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 22px;
+      }
+      .section-card {
+        padding: 24px;
+      }
+      .section-card h3 {
+        margin: 0 0 12px;
+        font-size: 1.2rem;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+      }
+      .section-kicker {
+        display: inline-flex;
+        margin-bottom: 14px;
+        color: var(--secondary);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      @media (max-width: 980px) {
+        .header, .hero {
+          grid-template-columns: 1fr;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .section-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="frame">
+        <header class="header">
+          <div class="brand">
+            <div class="brand-mark">✦</div>
+            <div>Ledgerlane</div>
+          </div>
+          <nav class="nav">${nav}</nav>
+          <a class="cta" href="${ctaHref}">${ctaLabel}</a>
+        </header>
+        <main class="main">
+          <section class="hero">
+            <div class="card hero-copy">
+              <span class="eyebrow">${eyebrow}</span>
+              <h1>${title}</h1>
+              <p>${description}</p>
+              <div class="actions">
+                <a class="cta" href="${ctaHref}">${ctaLabel}</a>
+                <a class="ghost" href="/contact">Talk to the team</a>
+              </div>
+            </div>
+            <aside class="card spotlight">
+              <div class="label">${kicker}</div>
+              <h2>Default preview sample</h2>
+              <p style="color: rgba(255,255,255,0.8);">This is a polished starter preview so the canvas feels alive before generation. Once you generate, this gets replaced with the real site HTML.</p>
+              <div class="metrics">
+                <div class="metric">
+                  <strong>Automated</strong>
+                  <span>Bookkeeping flows that feel calmer and faster.</span>
+                </div>
+                <div class="metric">
+                  <strong>Founder-ready</strong>
+                  <span>Clear reporting without spreadsheet chaos.</span>
+                </div>
+              </div>
+            </aside>
+          </section>
+          <section class="section-grid">
+            <article class="card section-card">
+              <span class="section-kicker">Workflow</span>
+              <h3>Capture invoices and payments in one cleaner loop.</h3>
+              <p>Keep money movement visible without bouncing between tools.</p>
+            </article>
+            <article class="card section-card">
+              <span class="section-kicker">Reporting</span>
+              <h3>Understand cash health at a glance.</h3>
+              <p>Make faster calls with founder-friendly summaries and less admin drag.</p>
+            </article>
+            <article class="card section-card">
+              <span class="section-kicker">Trust</span>
+              <h3>Present your financial operations with more confidence.</h3>
+              <p>The preview sets the tone even before the custom site is generated.</p>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>`;
+}
+
 export const demoGeneratedSite: AIGenerationResponse = {
   contentPlan: {
     brand: "Ledgerlane",
@@ -244,12 +579,60 @@ export const demoGeneratedSite: AIGenerationResponse = {
   ],
   sections: [],
   htmlByPage: {
-    home: '<!DOCTYPE html><html lang="en"><head><title>Ledgerlane | Home</title><meta name="description" content="Financial clarity for freelancers who want premium control without spreadsheet chaos." /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body><main><section><h1>Ledgerlane</h1><p>Home preview</p><img src="/placeholder-home.png" alt="Ledgerlane home preview" /></section></main></body></html>',
-    features: '<!DOCTYPE html><html lang="en"><head><title>Ledgerlane | Features</title><meta name="description" content="Explore Ledgerlane features for modern finance workflows." /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body><main><section><h1>Features</h1><p>Features preview</p><img src="/placeholder-features.png" alt="Ledgerlane features preview" /></section></main></body></html>',
-    pricing: '<!DOCTYPE html><html lang="en"><head><title>Ledgerlane | Pricing</title><meta name="description" content="Review Ledgerlane pricing for freelancers and growing studios." /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body><main><section><h1>Pricing</h1><p>Pricing preview</p><img src="/placeholder-pricing.png" alt="Ledgerlane pricing preview" /></section></main></body></html>',
-    about: '<!DOCTYPE html><html lang="en"><head><title>Ledgerlane | About</title><meta name="description" content="Learn why Ledgerlane was built for modern operators." /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body><main><section><h1>About</h1><p>About preview</p><img src="/placeholder-about.png" alt="Ledgerlane about preview" /></section></main></body></html>',
-    contact: '<!DOCTYPE html><html lang="en"><head><title>Ledgerlane | Contact</title><meta name="description" content="Talk to the Ledgerlane team about onboarding and support." /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body><main><section><h1>Contact</h1><p>Contact preview</p><img src="/placeholder-contact.png" alt="Ledgerlane contact preview" /></section></main></body></html>',
-    faq: '<!DOCTYPE html><html lang="en"><head><title>Ledgerlane | FAQ</title><meta name="description" content="Get quick answers about Ledgerlane setup and workflow fit." /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body><main><section><h1>FAQ</h1><p>FAQ preview</p><img src="/placeholder-faq.png" alt="Ledgerlane FAQ preview" /></section></main></body></html>',
+    home: buildDemoHtml({
+      slug: "home",
+      title: "Run your studio finances without spreadsheet chaos.",
+      description: "Financial clarity for freelancers who want premium control without spreadsheet chaos.",
+      kicker: "Editorial starter preview",
+      eyebrow: "Default sample site",
+      ctaLabel: "Start free",
+      ctaHref: "/pricing",
+    }),
+    features: buildDemoHtml({
+      slug: "features",
+      title: "Features built for independent teams who need clarity fast.",
+      description: "Explore Ledgerlane features for modern finance workflows.",
+      kicker: "Workflow overview",
+      eyebrow: "Default sample site",
+      ctaLabel: "Explore the workflow",
+      ctaHref: "/features",
+    }),
+    pricing: buildDemoHtml({
+      slug: "pricing",
+      title: "Simple pricing for freelancers and growing studios.",
+      description: "Review Ledgerlane pricing for freelancers and growing studios.",
+      kicker: "Pricing starter",
+      eyebrow: "Default sample site",
+      ctaLabel: "Compare plans",
+      ctaHref: "/pricing",
+    }),
+    about: buildDemoHtml({
+      slug: "about",
+      title: "A bookkeeping product built to feel modern, calm, and trustworthy.",
+      description: "Learn why Ledgerlane was built for modern operators.",
+      kicker: "Brand story",
+      eyebrow: "Default sample site",
+      ctaLabel: "Why we built it",
+      ctaHref: "/about",
+    }),
+    contact: buildDemoHtml({
+      slug: "contact",
+      title: "Talk to the team behind Ledgerlane.",
+      description: "Talk to the Ledgerlane team about onboarding and support.",
+      kicker: "High-intent contact",
+      eyebrow: "Default sample site",
+      ctaLabel: "Contact us",
+      ctaHref: "/contact",
+    }),
+    faq: buildDemoHtml({
+      slug: "faq",
+      title: "Questions people ask before they commit.",
+      description: "Get quick answers about Ledgerlane setup and workflow fit.",
+      kicker: "Support preview",
+      eyebrow: "Default sample site",
+      ctaLabel: "Get answers",
+      ctaHref: "/faq",
+    }),
   },
   domainSuggestions: ["ledgerlane.ai", "useledgerlane.com", "ledgerlanehq.com"],
   notes: [
