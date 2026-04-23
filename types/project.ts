@@ -33,6 +33,7 @@ export type PersistedProjectSummary = {
   id: string;
   startupIdea: string;
   selectedStyle: string | null;
+  deployedUrl: string | null;
   brandName: string | null;
   tagline: string | null;
   templateType: string;
@@ -57,6 +58,7 @@ export type PersistedProjectDetail = PersistedProjectSummary & {
   tone: string | null;
   styleDirection: string | null;
   preferredDomain: string | null;
+  deployedUrl: string | null;
   seoSummary: SeoSummary | null;
   palette: unknown;
   siteMap: unknown;

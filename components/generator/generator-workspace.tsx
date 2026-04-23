@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { demoGeneratedSite } from "@/lib/demo-generated-site";
 import { runSeoQuickCheck } from "@/lib/seo/checker";
 import { cn } from "@/lib/utils";
-import { SiteRenderer } from "@/renderers/site-renderer";
 import type { AIGenerationResponse, AIActionResult } from "@/types/ai";
 import type { PersistedProjectDetail } from "@/types/project";
 
@@ -83,6 +82,182 @@ function buildPaletteCode(brand: string, palette: string[]) {
 
   return `/* ${brand || "Generated brand"} palette */\n:root {\n${tokens.join("\n")}\n}`;
 }
+
+function normalizePreviewSlug(pathname: string) {
+  if (!pathname || pathname === "/") {
+    return "home";
+  }
+
+  return pathname.replace(/^\/+|\/+$/g, "");
+}
+
+function getPreviewSlugFromHref(href: string, knownSlugs: string[]) {
+  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+    return null;
+  }
+
+  try {
+    const url = new URL(href, "https://preview.local");
+    const slug = normalizePreviewSlug(url.pathname);
+    return knownSlugs.includes(slug) ? slug : null;
+  } catch {
+    return null;
+  }
+}
+
+function getPreviewHtml(site: AIGenerationResponse, activePageSlug: string) {
+  const html = site.htmlByPage?.[activePageSlug] ?? site.htmlByPage?.home;
+
+  if (!html?.trim()) {
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${site.brand}</title></head><body style="margin:0;font-family:Inter,Arial,sans-serif;background:#f8fafc;color:#0f172a;display:grid;place-items:center;min-height:100vh;"><div style="padding:24px 28px;border-radius:20px;background:white;border:1px solid #e2e8f0;box-shadow:0 12px 32px rgba(15,23,42,0.08);">Preview is not available for this page yet.</div></body></html>`;
+  }
+
+  const previewEnhancer = `
+    <style>
+      .nav-link {
+        border-radius: 999px !important;
+        padding: 10px 14px !important;
+        transition: color 180ms ease, opacity 180ms ease, background-color 180ms ease, box-shadow 180ms ease !important;
+      }
+      .nav-link-active {
+        color: var(--brand-primary, #111827) !important;
+        font-weight: 900 !important;
+        background: color-mix(in srgb, var(--brand-secondary, #8B5CF6) 14%, white) !important;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-secondary, #8B5CF6) 18%, white) !important;
+      }
+    </style>
+  `;
+
+  if (html.includes("</head>")) {
+    return html.replace("</head>", `${previewEnhancer}</head>`);
+  }
+
+  return `${previewEnhancer}${html}`;
+}
+
+function applyActivePreviewNav(frameDocument: Document, activePageSlug: string) {
+  const expectedPath = activePageSlug === "home" ? "/" : `/${activePageSlug}`;
+  const links = Array.from(frameDocument.querySelectorAll("a[href]"));
+
+  links.forEach((link) => {
+    if (!(link instanceof HTMLElement)) {
+      return;
+    }
+
+    const href = link.getAttribute("href");
+    if (!href) {
+      return;
+    }
+
+    try {
+      const url = new URL(href, "https://preview.local");
+      const isActive = url.pathname === expectedPath;
+
+      if (isActive) {
+        link.classList.add("nav-link-active");
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.classList.remove("nav-link-active");
+        link.removeAttribute("aria-current");
+      }
+    } catch {
+      // Ignore invalid preview links.
+    }
+  });
+}
+
+function HtmlPreviewFrame({
+  site,
+  activePageSlug,
+  onNavigateSlug,
+  className,
+}: {
+  site: AIGenerationResponse;
+  activePageSlug: string;
+  onNavigateSlug: (slug: string) => void;
+  className?: string;
+}) {
+  const srcDoc = useMemo(() => getPreviewHtml(site, activePageSlug), [site, activePageSlug]);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const knownSlugs = useMemo(() => site.pages.map((page) => page.slug), [site.pages]);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) {
+      return;
+    }
+
+    const attachPreviewNavigation = () => {
+      const frameWindow = iframe.contentWindow;
+      const frameDocument = iframe.contentDocument;
+
+      if (!frameWindow || !frameDocument) {
+        return;
+      }
+
+      applyActivePreviewNav(frameDocument, activePageSlug);
+
+      const clickHandler = (event: MouseEvent) => {
+        const target = event.target;
+        if (!(target instanceof Node)) {
+          return;
+        }
+
+        const targetElement =
+          target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement;
+        if (!targetElement) {
+          return;
+        }
+
+        const anchor = targetElement.closest("a[href]");
+        if (!(anchor instanceof HTMLElement)) {
+          return;
+        }
+
+        const slug = getPreviewSlugFromHref(anchor.getAttribute("href") || "", knownSlugs);
+        if (!slug) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        onNavigateSlug(slug);
+      };
+
+      frameDocument.addEventListener("click", clickHandler, true);
+
+      return () => {
+        frameDocument.removeEventListener("click", clickHandler, true);
+      };
+    };
+
+    let detach = attachPreviewNavigation();
+
+    const loadHandler = () => {
+      detach?.();
+      detach = attachPreviewNavigation();
+    };
+
+    iframe.addEventListener("load", loadHandler);
+
+    return () => {
+      iframe.removeEventListener("load", loadHandler);
+      detach?.();
+    };
+  }, [activePageSlug, knownSlugs, onNavigateSlug, srcDoc]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      key={`${site.brand}-${activePageSlug}`}
+      title={`${site.brand} preview`}
+      srcDoc={srcDoc}
+      className={cn("h-full w-full rounded-[32px] bg-white", className)}
+      sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
+    />
+  );
+}
+
 
 function getStyleExplanation(style: (typeof styleOptions)[number], site: AIGenerationResponse) {
   const brand = site.brand || "the brand";
@@ -193,6 +368,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [hasCompletedGeneration, setHasCompletedGeneration] = useState(Boolean(initialProject));
   const [activePreviewPage, setActivePreviewPage] = useState("home");
+  const [previewMode, setPreviewMode] = useState<"single" | "all">("single");
   const [previewDevice, setPreviewDevice] = useState<"Desktop" | "Tablet" | "Mobile">("Desktop");
   // const [presentationMode, setPresentationMode] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -211,13 +387,13 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
   const [isRefreshingDomains, setIsRefreshingDomains] = useState(false);
   const [savingPreferredDomain, setSavingPreferredDomain] = useState<string | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [vercelUrl, setVercelUrl] = useState<string | null>(null);
+  const [vercelUrl, setVercelUrl] = useState<string | null>(initialProject?.deployedUrl ?? null);
+  const [hasUndeployedChanges, setHasUndeployedChanges] = useState(false);
   const [suggestedDomains, setSuggestedDomains] = useState<{ name: string; price: string }[]>([]);
   const [showDeploySuccess, setShowDeploySuccess] = useState(false);
   const [deployStep, setDeployStep] = useState<"deploying" | "domains" | "configuration">("deploying");
   const [retryAction, setRetryAction] = useState<null | (() => void)>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
-
 
   const handleDeploy = async () => {
     setIsDeploying(true);
@@ -232,6 +408,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
         body: JSON.stringify({
           site: generatedSite,
           brandName: generatedSite.brand,
+          projectId: savedProject?.id,
         }),
       });
 
@@ -240,8 +417,14 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
         throw new Error(errorData.error || "Deployment failed");
       }
 
-      const { url } = await response.json();
+      const { url, project } = await response.json();
       setVercelUrl(url);
+      setHasUndeployedChanges(false);
+      setCopiedUrl(false);
+      if (project) {
+        setSavedProject(project);
+      }
+      setWorkspaceMessage("Deployment URL saved to the project.");
 
       // Step 2: Check Domain Availability (Simulated)
       setDeployStep("domains");
@@ -254,7 +437,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
     } catch (error) {
       console.error("Pipeline failed:", error);
       // Fallback url for safety in demo if API fails but show error
-      setVercelUrl("https://deployment-failed.vercel.app");
+      setWorkspaceMessage(error instanceof Error ? error.message : "Deployment failed.");
     } finally {
       setIsDeploying(false);
     }
@@ -270,6 +453,12 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       console.error("Failed to copy URL:", err);
     }
   };
+
+  useEffect(() => {
+    if (savedProject?.deployedUrl) {
+      setVercelUrl(savedProject.deployedUrl);
+    }
+  }, [savedProject?.deployedUrl]);
   const persistedSeoKeyRef = useRef<string | null>(null);
   const inferredPlan = generatedSite.contentPlan;
   const recommendedSections = Array.from(
@@ -285,6 +474,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
     purpose: "Preview placeholder",
     sections: [],
   };
+  const orderedPreviewPages = generatedSite.pages.length > 0 ? generatedSite.pages : [activePage];
   const paletteCode = buildPaletteCode(generatedSite.brand, generatedSite.palette);
   const codeView = JSON.stringify(
     {
@@ -296,6 +486,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       siteMap: generatedSite.siteMap,
       pages: generatedSite.pages,
       htmlByPage: generatedSite.htmlByPage,
+      projectFiles: generatedSite.projectFiles ?? {},
       notes: generatedSite.notes,
     },
     null,
@@ -321,6 +512,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
         paletteCss: paletteCode,
         bestOutputMode: generatedSite.bestOutputMode,
         domainSuggestions: generatedSite.domainSuggestions,
+        generatedProjectFiles: Object.keys(generatedSite.projectFiles ?? {}),
       },
     },
     null,
@@ -332,9 +524,6 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
   const premiumDomains = domainChecks.filter((item) => item.isPremium || item.availability === "PREMIUM");
   const activePageHtml = generatedSite.htmlByPage[activePage.slug] ?? "<main></main>";
 
-  useEffect(() => {
-    console.log(`[Preview] Active Page HTML (${activePage.slug}):`, activePageHtml);
-  }, [activePage.slug, activePageHtml]);
 
   const seoSummary = useMemo(
     () => runSeoQuickCheck(activePage.slug, activePageHtml),
@@ -494,6 +683,8 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       setIsGenerating(true);
       setActiveStepIndex(0);
       setActivePreviewPage("home");
+      setHasUndeployedChanges(true);
+      setCopiedUrl(false);
     });
   }
 
@@ -579,6 +770,8 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       }
 
       setGeneratedSite(result.data);
+      setHasUndeployedChanges(true);
+      setCopiedUrl(false);
       await persistGeneratedSite(result.data, "CONTENT_EDIT", editPrompt);
       setRetryAction(null);
       setWorkspaceMessage("Edit applied, preview updated, and history saved.");
@@ -622,6 +815,8 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       }
 
       setGeneratedSite(result.data);
+      setHasUndeployedChanges(true);
+      setCopiedUrl(false);
       await persistGeneratedSite(
         result.data,
         "CONTENT_EDIT",
@@ -671,6 +866,8 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       }
 
       setGeneratedSite(result.data);
+      setHasUndeployedChanges(true);
+      setCopiedUrl(false);
       await persistGeneratedSite(
         result.data,
         "REGENERATE_SECTION",
@@ -730,9 +927,14 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
         templateType: generatedSite.templateType,
       },
       files: generatedSite.pages.map((page, index) => ({
-        path: index === 0 ? "index.html" : `${page.slug}.html`,
+        path: index === 0 ? "index.html" : `${page.slug}/index.html`,
+        route: index === 0 ? "/" : `/${page.slug}`,
         title: page.title,
         content: generatedSite.htmlByPage[page.slug] ?? "<main></main>",
+      })),
+      projectFiles: Object.entries(generatedSite.projectFiles ?? {}).map(([path, content]) => ({
+        path,
+        content,
       })),
       metadata: {
         siteMap: generatedSite.siteMap,
@@ -764,8 +966,10 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       bestOutputMode: generatedSite.bestOutputMode,
       palette: generatedSite.palette,
       siteMap: generatedSite.siteMap,
+      generatedProjectFiles: Object.keys(generatedSite.projectFiles ?? {}),
       domainSuggestions: generatedSite.domainSuggestions,
       seoSummary: savedProject?.seoSummary ?? null,
+      deployedUrl: savedProject?.deployedUrl ?? null,
     };
 
     downloadFile(
@@ -1260,20 +1464,30 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
             <div className="flex h-12 w-full justify-between items-center gap-6 rounded-full border border-white/10 bg-white/[0.03] pl-2 pr-6 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all hover:border-white/20">
               <button
                 type="button"
-                onClick={handleDeploy}
-                disabled={isDeploying}
-                className="group flex items-center gap-2.5 rounded-full bg-emerald-400/10 px-4 py-1.5 transition-all hover:bg-emerald-400/20 active:scale-95 disabled:opacity-50"
+                onClick={vercelUrl && !hasUndeployedChanges ? handleCopyDeployedUrl : handleDeploy}
+                disabled={isDeploying || (vercelUrl ? false : false)}
+                className={cn(
+                  "group flex items-center gap-2.5 rounded-full px-4 py-1.5 transition-all active:scale-95 disabled:opacity-50",
+                  vercelUrl && !hasUndeployedChanges
+                    ? "bg-sky-400/10 hover:bg-sky-400/20"
+                    : "bg-emerald-400/10 hover:bg-emerald-400/20",
+                )}
               >
                 <div className="relative flex h-2 w-2 items-center justify-center">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  <div className={cn("h-1.5 w-1.5 rounded-full", vercelUrl && !hasUndeployedChanges ? "bg-sky-400" : "bg-emerald-400")} />
                   {isDeploying ? (
                     <div className="absolute inset-x-0 h-3 w-3 animate-spin rounded-full border border-emerald-400 border-t-transparent" />
-                  ) : (
+                  ) : !(vercelUrl && !hasUndeployedChanges) ? (
                     <div className="absolute inset-x-0 h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  )}
+                  ) : null}
                 </div>
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400">
-                  {isDeploying ? "Deploying..." : "Ready for deploy"}
+                <span
+                  className={cn(
+                    "text-[9px] font-black uppercase tracking-[0.2em]",
+                    vercelUrl && !hasUndeployedChanges ? "text-sky-400" : "text-emerald-400",
+                  )}
+                >
+                  {isDeploying ? "Deploying..." : vercelUrl && !hasUndeployedChanges ? (copiedUrl ? "Copied URL" : "Copy URL") : "Ready for deploy"}
                 </span>
               </button>
 
@@ -1295,6 +1509,29 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
                     {device === "Desktop" && <Monitor className="h-3.5 w-3.5" />}
                     {device === "Tablet" && <Smartphone className="h-3.5 w-3.5 rotate-90" />}
                     {device === "Mobile" && <Smartphone className="h-3.5 w-3.5" />}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-px bg-white/10" />
+
+              <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+                {([
+                  { key: "single", label: "Page" },
+                  { key: "all", label: "All" },
+                ] as const).map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setPreviewMode(option.key)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                      previewMode === option.key
+                        ? "bg-white text-slate-950"
+                        : "text-slate-400 hover:text-white",
+                    )}
+                  >
+                    {option.label}
                   </button>
                 ))}
               </div>
@@ -1328,15 +1565,47 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
           </div>
 
           <div className={cn("transition-all duration-700 ease-in-out", previewFrameClassName)}>
-            <div className="group relative overflow-y-auto scrollbar-hide rounded-[32px] border border-white/15 bg-white/5 shadow-[0_48px_120px_rgba(0,0,0,0.6)] transition-all hover:border-white/20">
-              <SiteRenderer
-                site={generatedSite}
-                activePageSlug={activePreviewPage}
-                onRegenerateSection={handleRegenerateSection}
-                onPageChange={setActivePreviewPage}
-                regeneratingSectionId={regeneratingSectionId}
-              />
-            </div>
+            {previewMode === "single" ? (
+              <div className="group relative h-[720px] overflow-hidden rounded-[32px] border border-white/15 bg-white shadow-[0_48px_120px_rgba(0,0,0,0.6)] transition-all hover:border-white/20">
+                <HtmlPreviewFrame
+                  site={generatedSite}
+                  activePageSlug={activePreviewPage}
+                  onNavigateSlug={setActivePreviewPage}
+                />
+              </div>
+            ) : (
+              <div className="space-y-10">
+                {orderedPreviewPages.map((page) => (
+                  <section key={page.slug} className="space-y-3">
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 backdrop-blur-sm">
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                          {page.slug}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-white">{page.title}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActivePreviewPage(page.slug);
+                          setPreviewMode("single");
+                        }}
+                        className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-white/15"
+                      >
+                        Focus Page
+                      </button>
+                    </div>
+                    <div className="group relative h-[720px] overflow-hidden rounded-[32px] border border-white/15 bg-white shadow-[0_48px_120px_rgba(0,0,0,0.6)] transition-all hover:border-white/20">
+                      <HtmlPreviewFrame
+                        site={generatedSite}
+                        activePageSlug={page.slug}
+                        onNavigateSlug={setActivePreviewPage}
+                      />
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* <div className="mt-12 flex flex-wrap items-center justify-between gap-8 border-t border-white/5 pt-8">
@@ -1392,24 +1661,55 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
               <div className="flex h-10 items-center gap-6 rounded-full border border-white/10 bg-white/[0.03] pl-1.5 pr-5 backdrop-blur-xl">
                 <button
                   type="button"
-                  onClick={handleDeploy}
+                  onClick={vercelUrl && !hasUndeployedChanges ? handleCopyDeployedUrl : handleDeploy}
                   disabled={isDeploying}
-                  className="group flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 transition-all hover:bg-emerald-400/20 active:scale-95 disabled:opacity-50"
+                  className={cn(
+                    "group flex items-center gap-2 rounded-full px-3 py-1 transition-all active:scale-95 disabled:opacity-50",
+                    vercelUrl && !hasUndeployedChanges
+                      ? "bg-sky-400/10 hover:bg-sky-400/20"
+                      : "bg-emerald-400/10 hover:bg-emerald-400/20",
+                  )}
                 >
                   <div className="relative flex h-1.5 w-1.5 items-center justify-center">
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <div className={cn("h-1.5 w-1.5 rounded-full", vercelUrl && !hasUndeployedChanges ? "bg-sky-400" : "bg-emerald-400")} />
                     {isDeploying ? (
                       <div className="absolute inset-x-0 h-3 w-3 animate-spin rounded-full border border-emerald-400 border-t-transparent" />
-                    ) : (
+                    ) : !(vercelUrl && !hasUndeployedChanges) ? (
                       <div className="absolute inset-x-0 h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    )}
+                    ) : null}
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-400">
-                    {isDeploying ? "Deploying..." : "Ready for deploy"}
+                  <span
+                    className={cn(
+                      "text-[8px] font-black uppercase tracking-[0.2em]",
+                      vercelUrl && !hasUndeployedChanges ? "text-sky-400" : "text-emerald-400",
+                    )}
+                  >
+                    {isDeploying ? "Deploying..." : vercelUrl && !hasUndeployedChanges ? (copiedUrl ? "Copied URL" : "Copy URL") : "Ready for deploy"}
                   </span>
                 </button>
 
                 <div className="h-3 w-px bg-white/10" />
+
+                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+                  {([
+                    { key: "single", label: "Page" },
+                    { key: "all", label: "All" },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setPreviewMode(option.key)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] transition-all",
+                        previewMode === option.key
+                          ? "bg-white text-slate-950"
+                          : "text-slate-400 hover:text-white",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="flex items-center gap-1">
                   {(["Desktop", "Tablet", "Mobile"] as const).map((device) => (
@@ -1445,15 +1745,47 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
 
             <div className="flex-1 overflow-auto bg-[#020617] p-4 lg:p-8">
               <div className={cn("mx-auto h-full transition-all duration-700", previewFrameClassName)}>
-                <div className="relative h-full overflow-y-auto scrollbar-hide rounded-[40px] border border-white/10 bg-white/[0.02] shadow-[0_40px_100px_rgba(0,0,0,0.8)]">
-                  <SiteRenderer
-                    site={generatedSite}
-                    activePageSlug={activePreviewPage}
-                    onRegenerateSection={handleRegenerateSection}
-                    onPageChange={setActivePreviewPage}
-                    regeneratingSectionId={regeneratingSectionId}
-                  />
-                </div>
+                {previewMode === "single" ? (
+                  <div className="relative h-full min-h-[760px] overflow-hidden rounded-[40px] border border-white/10 bg-white shadow-[0_40px_100px_rgba(0,0,0,0.8)]">
+                    <HtmlPreviewFrame
+                      site={generatedSite}
+                      activePageSlug={activePreviewPage}
+                      onNavigateSlug={setActivePreviewPage}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-10">
+                    {orderedPreviewPages.map((page) => (
+                      <section key={page.slug} className="space-y-3">
+                        <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 backdrop-blur-sm">
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                              {page.slug}
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-white">{page.title}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivePreviewPage(page.slug);
+                              setPreviewMode("single");
+                            }}
+                            className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-white/15"
+                          >
+                            Focus Page
+                          </button>
+                        </div>
+                        <div className="relative h-[760px] overflow-hidden rounded-[40px] border border-white/10 bg-white shadow-[0_40px_100px_rgba(0,0,0,0.8)]">
+                          <HtmlPreviewFrame
+                            site={generatedSite}
+                            activePageSlug={page.slug}
+                            onNavigateSlug={setActivePreviewPage}
+                          />
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -533,8 +533,8 @@ function buildPagesFromPlan(
       index === 0
         ? sections
         : sections.filter((section) =>
-            ["features", "pricing", "cta"].includes(section.id),
-          ),
+          ["features", "pricing", "cta"].includes(section.id),
+        ),
   }));
 }
 
@@ -575,33 +575,33 @@ function normalizeResponse(
 
   const contentPlan = response.contentPlan
     ? {
-        ...fallback.contentPlan,
-        ...response.contentPlan,
-        brand: response.contentPlan.brand?.trim() || fallback.contentPlan.brand,
-        tagline: response.contentPlan.tagline?.trim() || fallback.contentPlan.tagline,
-        audience: response.contentPlan.audience?.trim() || fallback.contentPlan.audience,
-        productPositioning:
-          response.contentPlan.productPositioning?.trim() ||
-          fallback.contentPlan.productPositioning,
-        tone: response.contentPlan.tone?.trim() || fallback.contentPlan.tone,
-        ctaDirection:
-          response.contentPlan.ctaDirection?.trim() || fallback.contentPlan.ctaDirection,
-        pricingDirection:
-          response.contentPlan.pricingDirection?.trim() || fallback.contentPlan.pricingDirection,
-        styleDirection:
-          response.contentPlan.styleDirection?.trim() ||
-          fallback.contentPlan.styleDirection,
-        keyFeatures:
-          response.contentPlan.keyFeatures?.filter(
-            (feature) => feature?.title?.trim() && feature?.description?.trim(),
-          ) ?? fallback.contentPlan.keyFeatures,
-        palette:
-          response.contentPlan.palette?.filter((color) => typeof color === "string" && color.trim()) ??
-          preferredPalette ?? fallback.contentPlan.palette,
-        siteMap:
-          response.contentPlan.siteMap?.filter((item) => typeof item === "string" && item.trim()) ??
-          fallback.contentPlan.siteMap,
-      }
+      ...fallback.contentPlan,
+      ...response.contentPlan,
+      brand: response.contentPlan.brand?.trim() || fallback.contentPlan.brand,
+      tagline: response.contentPlan.tagline?.trim() || fallback.contentPlan.tagline,
+      audience: response.contentPlan.audience?.trim() || fallback.contentPlan.audience,
+      productPositioning:
+        response.contentPlan.productPositioning?.trim() ||
+        fallback.contentPlan.productPositioning,
+      tone: response.contentPlan.tone?.trim() || fallback.contentPlan.tone,
+      ctaDirection:
+        response.contentPlan.ctaDirection?.trim() || fallback.contentPlan.ctaDirection,
+      pricingDirection:
+        response.contentPlan.pricingDirection?.trim() || fallback.contentPlan.pricingDirection,
+      styleDirection:
+        response.contentPlan.styleDirection?.trim() ||
+        fallback.contentPlan.styleDirection,
+      keyFeatures:
+        response.contentPlan.keyFeatures?.filter(
+          (feature) => feature?.title?.trim() && feature?.description?.trim(),
+        ) ?? fallback.contentPlan.keyFeatures,
+      palette:
+        response.contentPlan.palette?.filter((color) => typeof color === "string" && color.trim()) ??
+        preferredPalette ?? fallback.contentPlan.palette,
+      siteMap:
+        response.contentPlan.siteMap?.filter((item) => typeof item === "string" && item.trim()) ??
+        fallback.contentPlan.siteMap,
+    }
     : fallback.contentPlan;
 
   const sections =
@@ -612,47 +612,20 @@ function normalizeResponse(
   const pages =
     response.pages?.length
       ? response.pages.map((page, pageIndex) => ({
-          slug: page.slug?.trim() || (pageIndex === 0 ? "home" : `page-${pageIndex + 1}`),
-          title: page.title?.trim() || `Page ${pageIndex + 1}`,
-          purpose:
-            page.purpose?.trim() ||
-            "This page was repaired from partial AI output to keep the project previewable.",
-          sections:
-            page.sections?.map((section, index) =>
-              normalizeSection(section, index, contentPlan.brand),
-            ) ?? (pageIndex === 0 ? sections : sections.slice(0, Math.min(sections.length, 3))),
-        }))
+        slug: page.slug?.trim() || (pageIndex === 0 ? "home" : `page-${pageIndex + 1}`),
+        title: page.title?.trim() || `Page ${pageIndex + 1}`,
+        purpose:
+          page.purpose?.trim() ||
+          "This page was repaired from partial AI output to keep the project previewable.",
+        sections:
+          page.sections?.map((section, index) =>
+            normalizeSection(section, index, contentPlan.brand),
+          ) ?? (pageIndex === 0 ? sections : sections.slice(0, Math.min(sections.length, 3))),
+      }))
       : fallback.pages;
 
-  const htmlByPage = Object.fromEntries(
-    pages.map((page) => {
-      const providerHtml = response.htmlByPage?.[page.slug];
-      const fallbackHtml = fallback.htmlByPage[page.slug];
-
-      return [
-        page.slug,
-        providerHtml?.trim()
-          ? providerHtml
-          : fallbackHtml ??
-              `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>${escapeHtml(contentPlan.brand)} | ${escapeHtml(page.title)}</title>
-    <meta name="description" content="${escapeHtml(contentPlan.tagline)}" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-  </head>
-  <body>
-    <main>
-      <section>
-        <h1>${escapeHtml(contentPlan.brand)}</h1>
-        <p>${escapeHtml(page.purpose)}</p>
-      </section>
-    </main>
-  </body>
-</html>`,
-      ];
-    }),
-  );
+  const htmlByPage = buildHtmlFromPages(contentPlan, pages);
+  const projectFiles = buildProjectFilesFromPages(contentPlan, pages, htmlByPage);
 
   return {
     ...fallback,
@@ -685,6 +658,7 @@ function normalizeResponse(
     pages,
     sections,
     htmlByPage,
+    projectFiles,
     domainSuggestions:
       response.domainSuggestions?.filter((item) => typeof item === "string" && item.trim()) ??
       fallback.domainSuggestions,
@@ -770,11 +744,24 @@ function applyEditInstructions(
     const stripped = removeSectionsByIdOrType(next, ["pricing"]);
     stripped.pricingDirection = "Pricing is intentionally removed from the current structure.";
     stripped.contentPlan.pricingDirection = stripped.pricingDirection;
-    return stripped;
+    const htmlByPage = buildHtmlFromPages(stripped.contentPlan, stripped.pages);
+
+    return {
+      ...stripped,
+      htmlByPage,
+      projectFiles: buildProjectFilesFromPages(stripped.contentPlan, stripped.pages, htmlByPage),
+    };
   }
 
   if (lower.includes("add faq")) {
-    return addFaqSection(next);
+    const withFaq = addFaqSection(next);
+    const htmlByPage = buildHtmlFromPages(withFaq.contentPlan, withFaq.pages);
+
+    return {
+      ...withFaq,
+      htmlByPage,
+      projectFiles: buildProjectFilesFromPages(withFaq.contentPlan, withFaq.pages, htmlByPage),
+    };
   }
 
   if (lower.includes("enterprise")) {
@@ -796,11 +783,11 @@ function applyEditInstructions(
     next.sections = next.sections.map((section) =>
       section.id === "hero"
         ? {
-            ...section,
-            title: `${next.brand} helps teams launch with more authority and less friction.`,
-            description:
-              "Sharper positioning, clearer trust signals, and a more decisive call to action make the first impression more compelling.",
-          }
+          ...section,
+          title: `${next.brand} helps teams launch with more authority and less friction.`,
+          description:
+            "Sharper positioning, clearer trust signals, and a more decisive call to action make the first impression more compelling.",
+        }
         : section,
     );
     next.pages = next.pages.map((page) => ({
@@ -808,155 +795,770 @@ function applyEditInstructions(
       sections: page.sections.map((section) =>
         section.id === "hero"
           ? {
-              ...section,
-              title: `${next.brand} helps teams launch with more authority and less friction.`,
-              description:
-                "Sharper positioning, clearer trust signals, and a more decisive call to action make the first impression more compelling.",
-            }
+            ...section,
+            title: `${next.brand} helps teams launch with more authority and less friction.`,
+            description:
+              "Sharper positioning, clearer trust signals, and a more decisive call to action make the first impression more compelling.",
+          }
           : section,
       ),
     }));
   }
 
-  return next;
+  const htmlByPage = buildHtmlFromPages(next.contentPlan, next.pages);
+
+  return {
+    ...next,
+    htmlByPage,
+    projectFiles: buildProjectFilesFromPages(next.contentPlan, next.pages, htmlByPage),
+  };
 }
 
 function buildHtmlFromPages(
   plan: AIContentPlan,
   pages: AIGenerationResponse["pages"],
-  existingProjectData?: AIProjectSnapshot | null,
 ) {
-  if (existingProjectData?.htmlByPage) {
-    return existingProjectData.htmlByPage;
-  }
+  const [primary = "#0F172A", secondary = "#2563EB", accent = "#22C55E", surface = "#F8FAFC", muted = "#E2E8F0"] =
+    plan.palette;
+
+  const pageHref = (slug: string) => (slug === "home" ? "/" : `/${slug}`);
+  const getPageLabel = (slug: string, fallbackTitle: string, index: number) => {
+    if (slug === "home") {
+      return "Home";
+    }
+
+    const siteMapMatch = plan.siteMap[index];
+    if (siteMapMatch?.trim()) {
+      return siteMapMatch.trim();
+    }
+
+    return fallbackTitle.trim() || slug.replace(/-/g, " ").replace(/\w/g, (match) => match.toUpperCase());
+  };
+
+  const featureCards = plan.keyFeatures
+    .map(
+      (feature) => `
+        <article class="card feature-card">
+          <span class="mini-badge">Feature</span>
+          <h3>${escapeHtml(feature.title)}</h3>
+          <p>${escapeHtml(feature.description)}</p>
+        </article>`,
+    )
+    .join("");
+
+  const exampleTestimonials = [
+    `“${plan.brand} makes consistency feel visible and motivating instead of lonely.”`,
+    `“The social accountability loop helped our group actually finish the challenge.”`,
+    `“It feels premium, focused, and much easier to stick with every day.”`,
+  ];
+
+  const pricingCards = [
+    ["Free", "Start with solo tracking, simple streaks, and a clean daily rhythm."],
+    ["Pro", "Unlock challenge tools, better reminders, public progress, and deeper accountability."],
+    ["Team", "Run community habits, private groups, and leaderboards at scale."],
+  ]
+    .map(
+      ([name, description], index) => `
+        <article class="card pricing-card${index === 1 ? " pricing-card-featured" : ""}">
+          <span class="mini-badge">${escapeHtml(name)}</span>
+          <h3>${escapeHtml(name)}</h3>
+          <p>${escapeHtml(description)}</p>
+        </article>`,
+    )
+    .join("");
+
+  const renderSection = (
+    section: AIGenerationResponse["sections"][number],
+    page: AIGenerationResponse["pages"][number],
+    index: number,
+  ) => {
+    const title = escapeHtml(section.title);
+    const description = escapeHtml(section.description);
+    const ctaLabel = section.ctaLabel ? escapeHtml(section.ctaLabel) : null;
+    const pageTitle = escapeHtml(page.title);
+    const pagePurpose = escapeHtml(page.purpose);
+
+    if (index === 0 || section.type === "hero") {
+      return `
+        <section class="hero-grid section-block" id="${escapeHtml(section.id)}">
+          <div>
+            <span class="eyebrow">${pageTitle}</span>
+            <h1>${title}</h1>
+            <p class="lede">${description}</p>
+            <div class="actions">
+              <a class="btn btn-primary" href="${pageHref(page.slug)}">${ctaLabel ?? "Get started"}</a>
+              <a class="btn btn-secondary" href="${pages.length > 1 ? pageHref(pages[Math.min(1, pages.length - 1)].slug) : '#details'}">${escapeHtml(plan.tagline)}</a>
+            </div>
+            <div class="trust-line">${escapeHtml(plan.audience)}</div>
+          </div>
+          <aside class="hero-panel">
+            <div class="hero-panel-card">
+              <span class="mini-badge">${escapeHtml(plan.templateType)}</span>
+              <h3>${escapeHtml(plan.brand)}</h3>
+              <p>${escapeHtml(plan.productPositioning)}</p>
+            </div>
+            <div class="metric-row">
+              <div class="metric-card">
+                <strong>${escapeHtml(plan.keyFeatures[0]?.title ?? "Focused value")}</strong>
+                <span>${escapeHtml(plan.keyFeatures[0]?.description ?? pagePurpose)}</span>
+              </div>
+              <div class="metric-card">
+                <strong>${escapeHtml(plan.keyFeatures[1]?.title ?? "Clear momentum")}</strong>
+                <span>${escapeHtml(plan.keyFeatures[1]?.description ?? description)}</span>
+              </div>
+            </div>
+          </aside>
+        </section>`;
+    }
+
+    if (["feature-grid", "benefit-grid", "value-grid"].includes(section.type)) {
+      return `
+        <section class="section-block" id="${escapeHtml(section.id)}">
+          <div class="section-heading">
+            <span class="eyebrow eyebrow-dark">Highlights</span>
+            <h2>${title}</h2>
+            <p>${description}</p>
+          </div>
+          <div class="grid grid-3">
+            ${featureCards}
+          </div>
+        </section>`;
+    }
+
+    if (["pricing", "pricing-cards"].includes(section.type)) {
+      return `
+        <section class="section-block" id="${escapeHtml(section.id)}">
+          <div class="section-heading">
+            <span class="eyebrow eyebrow-dark">Pricing</span>
+            <h2>${title}</h2>
+            <p>${description}</p>
+          </div>
+          <div class="grid grid-3">
+            ${pricingCards}
+          </div>
+        </section>`;
+    }
+
+    if (["testimonials", "logos"].includes(section.type)) {
+      const cards = exampleTestimonials
+        .map(
+          (quote, quoteIndex) => `
+            <article class="card quote-card">
+              <p>${escapeHtml(quote)}</p>
+              <span>Sample member ${quoteIndex + 1}</span>
+            </article>`,
+        )
+        .join("");
+
+      return `
+        <section class="section-block" id="${escapeHtml(section.id)}">
+          <div class="section-heading">
+            <span class="eyebrow eyebrow-dark">Community</span>
+            <h2>${title}</h2>
+            <p>${description}</p>
+          </div>
+          <div class="grid grid-3">
+            ${cards}
+          </div>
+        </section>`;
+    }
+
+    if (["steps", "listing-grid", "cards", "category-cards", "contact-grid", "filter-panel"].includes(section.type)) {
+      const entries = (section.type === "steps"
+        ? [
+          ["Start", "Create your flow, choose your focus, and set the cadence that fits your routine."],
+          ["Join", "Bring in a partner, team, or community to add visible accountability."],
+          ["Keep going", "Use reminders, streaks, and progress visibility to maintain momentum."],
+        ]
+        : plan.keyFeatures.slice(0, 3).map((feature) => [feature.title, feature.description]))
+        .map(
+          ([entryTitle, entryDescription], entryIndex) => `
+            <article class="card step-card">
+              <span class="step-index">0${entryIndex + 1}</span>
+              <h3>${escapeHtml(entryTitle)}</h3>
+              <p>${escapeHtml(entryDescription)}</p>
+            </article>`,
+        )
+        .join("");
+
+      return `
+        <section class="section-block" id="${escapeHtml(section.id)}">
+          <div class="section-heading">
+            <span class="eyebrow eyebrow-dark">Details</span>
+            <h2>${title}</h2>
+            <p>${description}</p>
+          </div>
+          <div class="grid grid-3">
+            ${entries}
+          </div>
+        </section>`;
+    }
+
+    if (section.type === "cta") {
+      return `
+        <section class="section-block" id="${escapeHtml(section.id)}">
+          <div class="cta-band">
+            <div>
+              <span class="eyebrow">Next step</span>
+              <h2>${title}</h2>
+              <p>${description}</p>
+            </div>
+            <a class="btn btn-light" href="${pageHref(page.slug)}">${ctaLabel ?? "Get started"}</a>
+          </div>
+        </section>`;
+    }
+
+    return `
+      <section class="section-block" id="${escapeHtml(section.id)}">
+        <div class="section-heading">
+          <span class="eyebrow eyebrow-dark">Section</span>
+          <h2>${title}</h2>
+          <p>${description}</p>
+        </div>
+        <article class="card content-card">
+          <h3>${pageTitle}</h3>
+          <p>${pagePurpose}</p>
+          ${ctaLabel ? `<a class="text-link" href="${pageHref(page.slug)}">${ctaLabel} →</a>` : ""}
+        </article>
+      </section>`;
+  };
 
   return Object.fromEntries(
-    pages.map((page) => [
-      page.slug,
-      (() => {
-        const [primary = "#0F172A", secondary = "#2563EB", surface = "#F8FAFC", accent = "#F59E0B", muted = "#CBD5E1"] =
-          plan.palette;
+    pages.map((page) => {
+      const navItems = pages
+        .map((navPage, index) => {
+          const isActivePage = navPage.slug === page.slug;
 
-        return `<!DOCTYPE html>
+          return `<a class="nav-link${isActivePage ? " nav-link-active" : ""}" href="${pageHref(navPage.slug)}"${isActivePage ? ' aria-current="page"' : ""}>${escapeHtml(getPageLabel(navPage.slug, navPage.title, index))}</a>`;
+        })
+        .join("");
+
+      const html = `<!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>${plan.brand} | ${page.title}</title>
-    <meta name="description" content="${plan.tagline}" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="${escapeHtml(page.purpose || plan.tagline)}" />
+    <title>${escapeHtml(page.title)} | ${escapeHtml(plan.brand)}</title>
     <style>
       :root {
         --brand-primary: ${primary};
         --brand-secondary: ${secondary};
-        --brand-surface: ${surface};
         --brand-accent: ${accent};
+        --brand-surface: ${surface};
         --brand-muted: ${muted};
+        --brand-ink: ${primary};
+        --brand-card: #ffffff;
+        --brand-line: color-mix(in srgb, ${primary} 12%, white);
       }
       * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
       body {
         margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        color: var(--brand-ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background:
-          radial-gradient(circle at top left, ${secondary}20, transparent 28%),
-          linear-gradient(180deg, ${surface}, #ffffff);
-        color: ${primary};
+          radial-gradient(circle at top left, color-mix(in srgb, ${secondary} 14%, transparent) 0, transparent 32%),
+          radial-gradient(circle at top right, color-mix(in srgb, ${accent} 10%, transparent) 0, transparent 28%),
+          linear-gradient(180deg, var(--brand-surface), #ffffff 70%);
       }
-      main { padding: 40px 20px; }
-      .shell {
-        max-width: 1120px;
-        margin: 0 auto;
-        border: 1px solid ${primary}22;
-        border-radius: 28px;
-        background: #ffffff;
+      a { color: inherit; text-decoration: none; }
+      .page-shell {
+        max-width: 1280px;
+        margin: 24px auto;
+        padding: 0 24px 48px;
+      }
+      .frame {
         overflow: hidden;
-        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+        border-radius: 32px;
+        border: 1px solid var(--brand-line);
+        background: rgba(255,255,255,0.78);
+        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(14px);
       }
-      .hero {
-        padding: 48px 32px;
-        background: linear-gradient(135deg, ${primary}, ${secondary}, ${accent});
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+        padding: 22px 28px;
+        border-bottom: 1px solid var(--brand-line);
+        background: rgba(255,255,255,0.88);
+      }
+      .brandmark {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        font-size: 18px;
+      }
+      .brandmark-badge {
+        width: 54px;
+        height: 54px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
         color: white;
+        background: linear-gradient(145deg, var(--brand-primary), color-mix(in srgb, var(--brand-secondary) 70%, var(--brand-primary)));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .nav-link {
+        position: relative;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: color-mix(in srgb, var(--brand-primary) 64%, white);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 12px;
+        font-weight: 700;
+        transition: color 180ms ease, opacity 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+      }
+      .nav-link-active {
+        color: var(--brand-primary);
+        font-weight: 900;
+        background: color-mix(in srgb, var(--brand-secondary) 14%, white);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-secondary) 18%, white);
+      }
+      .nav-link:hover {
+        color: var(--brand-primary);
+        background: color-mix(in srgb, var(--brand-primary) 6%, white);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 14px 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+        color: white;
+        box-shadow: 0 16px 34px color-mix(in srgb, var(--brand-secondary) 26%, transparent);
+      }
+      .btn-secondary {
+        border: 1px solid var(--brand-line);
+        background: rgba(255,255,255,0.78);
+        color: var(--brand-primary);
+      }
+      .btn-light {
+        background: white;
+        color: var(--brand-primary);
+      }
+      .main {
+        padding: 20px;
+      }
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        gap: 28px;
+        align-items: stretch;
+      }
+      .section-block {
+        padding: 28px;
+        border-radius: 28px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.76));
+        border: 1px solid var(--brand-line);
+        margin-bottom: 20px;
       }
       .eyebrow {
         display: inline-flex;
-        padding: 8px 14px;
+        align-items: center;
+        gap: 10px;
         border-radius: 999px;
-        background: rgba(255,255,255,0.12);
+        padding: 10px 16px;
+        background: rgba(255,255,255,0.72);
+        border: 1px solid rgba(255,255,255,0.76);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        color: var(--brand-primary);
         font-size: 12px;
-        letter-spacing: 0.24em;
+        font-weight: 800;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
       }
+      .eyebrow-dark {
+        background: color-mix(in srgb, var(--brand-secondary) 10%, white);
+        border-color: color-mix(in srgb, var(--brand-secondary) 18%, white);
+      }
+      h1, h2, h3 {
+        margin: 0;
+        color: var(--brand-primary);
+        letter-spacing: -0.05em;
+      }
       h1 {
-        margin: 24px 0 0;
-        font-size: clamp(42px, 7vw, 72px);
+        margin-top: 24px;
+        font-size: clamp(3.4rem, 7vw, 6.6rem);
         line-height: 0.95;
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      }
+      h2 {
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1;
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      }
+      h3 {
+        font-size: 1.3rem;
+        line-height: 1.1;
       }
       p {
-        margin: 18px 0 0;
-        max-width: 720px;
-        font-size: 18px;
+        margin: 0;
+        color: color-mix(in srgb, var(--brand-primary) 72%, white);
+        font-size: 1.04rem;
         line-height: 1.8;
+      }
+      .lede {
+        margin-top: 22px;
+        max-width: 680px;
+        font-size: 1.32rem;
       }
       .actions {
         display: flex;
         gap: 14px;
         flex-wrap: wrap;
-        margin-top: 28px;
+        margin-top: 30px;
       }
-      .primary {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 14px 20px;
-        border-radius: 999px;
-        background: ${surface};
-        color: ${primary};
-        font-weight: 700;
+      .trust-line {
+        margin-top: 26px;
+        padding-top: 18px;
+        border-top: 1px solid var(--brand-line);
+        color: color-mix(in srgb, var(--brand-primary) 58%, white);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 12px;
+        font-weight: 800;
       }
-      .secondary {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 14px 20px;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.16);
+      .hero-panel {
+        display: grid;
+        gap: 18px;
+      }
+      .hero-panel-card,
+      .metric-card,
+      .card {
+        border-radius: 24px;
+        background: var(--brand-card);
+        border: 1px solid var(--brand-line);
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.06);
+      }
+      .hero-panel-card {
+        padding: 24px;
+        background: linear-gradient(180deg, color-mix(in srgb, var(--brand-surface) 82%, white), white);
+      }
+      .hero-panel-card p {
+        margin-top: 14px;
+      }
+      .metric-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+      .metric-card {
+        padding: 20px;
+        background: linear-gradient(160deg, color-mix(in srgb, var(--brand-primary) 92%, white), color-mix(in srgb, var(--brand-secondary) 44%, var(--brand-primary)));
+      }
+      .metric-card strong,
+      .metric-card span {
+        display: block;
         color: white;
       }
-      .content {
-        padding: 32px;
+      .metric-card span {
+        margin-top: 10px;
+        line-height: 1.7;
+        color: rgba(255,255,255,0.78);
       }
-      .card {
+      .section-heading {
+        max-width: 760px;
+        margin-bottom: 24px;
+      }
+      .section-heading p {
+        margin-top: 14px;
+        font-size: 1.12rem;
+      }
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .feature-card,
+      .step-card,
+      .quote-card,
+      .pricing-card,
+      .content-card {
         padding: 24px;
-        border-radius: 24px;
-        background: ${secondary}10;
-        border: 1px solid ${primary}18;
+      }
+      .feature-card p,
+      .step-card p,
+      .quote-card p,
+      .pricing-card p,
+      .content-card p {
+        margin-top: 14px;
+      }
+      .mini-badge {
+        display: inline-flex;
+        margin-bottom: 14px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand-secondary) 12%, white);
+        color: var(--brand-secondary);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .step-index {
+        display: inline-flex;
+        margin-bottom: 14px;
+        color: var(--brand-secondary);
+        font-weight: 900;
+        letter-spacing: -0.04em;
+      }
+      .pricing-card-featured {
+        border-color: color-mix(in srgb, var(--brand-secondary) 42%, white);
+        box-shadow: 0 20px 60px color-mix(in srgb, var(--brand-secondary) 18%, transparent);
+      }
+      .quote-card span {
+        display: block;
+        margin-top: 18px;
+        color: color-mix(in srgb, var(--brand-primary) 52%, white);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .cta-band {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 34px;
+        border-radius: 28px;
+        background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+      }
+      .cta-band h2,
+      .cta-band p {
+        color: white;
+      }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        padding: 24px 28px 30px;
+        border-top: 1px solid var(--brand-line);
+        color: color-mix(in srgb, var(--brand-primary) 58%, white);
+      }
+      .footer a {
+        margin-left: 16px;
+      }
+      .text-link {
+        display: inline-flex;
+        margin-top: 18px;
+        color: var(--brand-secondary);
+        font-weight: 800;
+      }
+      @media (max-width: 980px) {
+        .topbar,
+        .cta-band,
+        .hero-grid {
+          grid-template-columns: 1fr;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .nav {
+          gap: 14px;
+        }
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+        .page-shell {
+          padding: 0 14px 28px;
+        }
+        .main,
+        .topbar,
+        .footer {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+        .section-block {
+          padding: 22px;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <div class="shell">
-        <section class="hero">
-          <div class="eyebrow">${page.title}</div>
-          <h1>${plan.brand}</h1>
-          <p>${page.purpose}</p>
-          <div class="actions">
-            <div class="primary">${plan.ctaDirection}</div>
-            <div class="secondary">${plan.tagline}</div>
+    <div class="page-shell">
+      <div class="frame">
+        <header class="topbar">
+          <div class="brandmark">
+            <div class="brandmark-badge">✦</div>
+            <div>${escapeHtml(plan.brand)}</div>
           </div>
-        </section>
-        <section class="content">
-          <div class="card">
-            <h2 style="margin:0;font-size:28px;">${plan.brand} preview</h2>
-            <p style="margin-top:12px;color:${primary};">${page.purpose}</p>
-            <p style="margin-top:12px;color:${muted};">${plan.audience}</p>
+          <nav class="nav">${navItems}</nav>
+          <a class="btn btn-primary" href="${pageHref(page.slug)}">${escapeHtml(page.sections[0]?.ctaLabel ?? "Get started")}</a>
+        </header>
+        <main class="main">
+          ${page.sections.map((section, index) => renderSection(section, page, index)).join("")}
+        </main>
+        <footer class="footer">
+          <div>© ${escapeHtml(plan.brand)}. ${escapeHtml(plan.tagline)}</div>
+          <div>
+            ${pages
+          .slice(0, Math.min(3, pages.length))
+          .map(
+            (linkedPage, index) =>
+              `<a href="${pageHref(linkedPage.slug)}">${escapeHtml(getPageLabel(linkedPage.slug, linkedPage.title, index))}</a>`,
+          )
+          .join("")}
           </div>
-        </section>
+        </footer>
       </div>
-    </main>
+    </div>
   </body>
 </html>`;
-      })(),
-    ]),
+
+      return [page.slug, html];
+    }),
   );
+}
+
+function buildProjectFilesFromPages(
+  plan: AIContentPlan,
+  pages: AIGenerationResponse["pages"],
+  htmlByPage: Record<string, string>,
+) {
+  const projectData = {
+    brand: plan.brand,
+    tagline: plan.tagline,
+    pages: pages.map((page) => ({
+      slug: page.slug,
+      title: page.title,
+      purpose: page.purpose,
+    })),
+    htmlByPage,
+  };
+
+  return {
+    "app/layout.tsx": `import type { Metadata } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: ${JSON.stringify(plan.brand)},
+  description: ${JSON.stringify(plan.tagline)},
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+`,
+    "app/globals.css": `* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, ${plan.palette[1] ?? "#2563EB"} 16%, transparent) 0, transparent 30%),
+    linear-gradient(180deg, ${plan.palette[3] ?? "#F8FAFC"}, #ffffff 70%);
+  color: ${plan.palette[0] ?? "#0F172A"};
+}
+`,
+    "generated/site-project.ts": `export const siteProject = ${JSON.stringify(projectData, null, 2)} as const;
+
+export type GeneratedSiteProject = typeof siteProject;
+`,
+    "components/generated-site-shell.tsx": `"use client";
+
+import { useMemo } from "react";
+
+import type { GeneratedSiteProject } from "@/generated/site-project";
+
+type GeneratedSiteShellProps = {
+  site: GeneratedSiteProject;
+  slug: string;
+};
+
+export function GeneratedSiteShell({ site, slug }: GeneratedSiteShellProps) {
+  const html = useMemo(
+    () =>
+      site.htmlByPage[slug] ??
+      site.htmlByPage.home ??
+      "<!DOCTYPE html><html lang=\\"en\\"><head><meta charset=\\"UTF-8\\" /><title>Preview unavailable</title></head><body style=\\"font-family:Inter,Arial,sans-serif;padding:24px;\\">Preview unavailable.</body></html>",
+    [site, slug],
+  );
+
+  return (
+    <main style={{ minHeight: "100vh", padding: "24px" }}>
+      <iframe
+        title={\`\${site.brand} \${slug}\`}
+        srcDoc={html}
+        style={{
+          width: "100%",
+          height: "calc(100vh - 48px)",
+          border: 0,
+          borderRadius: "28px",
+          background: "#ffffff",
+          boxShadow: "0 24px 80px rgba(15, 23, 42, 0.16)",
+        }}
+      />
+    </main>
+  );
+}
+`,
+    "app/page.tsx": `import { GeneratedSiteShell } from "@/components/generated-site-shell";
+import { siteProject } from "@/generated/site-project";
+
+export default function HomePage() {
+  return <GeneratedSiteShell site={siteProject} slug="home" />;
+}
+`,
+    "app/[slug]/page.tsx": `import { notFound } from "next/navigation";
+
+import { GeneratedSiteShell } from "@/components/generated-site-shell";
+import { siteProject } from "@/generated/site-project";
+
+type GeneratedPageProps = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
+
+export default async function GeneratedPage({ params }: GeneratedPageProps) {
+  const { slug } = await params;
+  const pageExists = siteProject.pages.some((page) => page.slug === slug);
+
+  if (!pageExists) {
+    notFound();
+  }
+
+  return <GeneratedSiteShell site={siteProject} slug={slug} />;
+}
+`,
+  };
 }
 
 function buildResponseFromIdea(
@@ -976,7 +1578,8 @@ function buildResponseFromIdea(
   );
   const sections = existingProjectData?.sections ?? buildSectionsFromPlan(contentPlan);
   const pages = buildPagesFromPlan(contentPlan, sections, existingProjectData);
-  const htmlByPage = buildHtmlFromPages(contentPlan, pages, existingProjectData);
+  const htmlByPage = buildHtmlFromPages(contentPlan, pages);
+  const projectFiles = buildProjectFilesFromPages(contentPlan, pages, htmlByPage);
 
   return {
     contentPlan,
@@ -997,6 +1600,7 @@ function buildResponseFromIdea(
     pages,
     sections,
     htmlByPage,
+    projectFiles,
     domainSuggestions:
       existingProjectData?.domainSuggestions ?? [
         `${slugify(contentPlan.brand)}.ai`,
@@ -1009,6 +1613,7 @@ function buildResponseFromIdea(
       `Style selection: ${styleSelection}.`,
       `Requested output mode: ${outputMode}.`,
       `Best inferred output mode: ${contentPlan.bestOutputMode}.`,
+      "Generated App Router project scaffold included.",
       ...(preferredPalette?.length ? [`Palette override applied: ${preferredPalette.join(", ")}.`] : []),
       ...(instructionNote ? [instructionNote] : []),
     ],
@@ -1042,9 +1647,20 @@ function buildProviderPrompt(
       instructions: {
         responseRequirements: [
           "Return structured JSON only.",
-          "Keep page structure coherent and renderable.",
+          "Keep page structure coherent, renderable, and production-oriented.",
+          "The design should feel like a polished modern startup website, not a plain document or wireframe.",
+          "Treat the structured pages and sections as the visual source of truth.",
+          "htmlByPage must faithfully reflect the same pages, sections, hierarchy, and CTA intent described in the structured output.",
+          "Do not output simplified placeholder markup when richer navigation, layout, or sections are defined.",
+          "Each htmlByPage page must include a real visible website structure with appropriate layout blocks such as header/navigation, hero, supporting sections, CTA areas, and footer where relevant.",
+          "Use semantic, production-quality HTML with clear hierarchy, intentional spacing, and polished content grouping.",
+          "Do not output bare text stacked in a document-like layout.",
+          "Preserve a premium landing-page feel with strong hero composition, clean section rhythm, and clear conversion flow.",
           "Include realistic htmlByPage strings with title, meta description, viewport meta, and at least one H1.",
+          "If a navigation is implied by the site map, include it in htmlByPage.",
+          "If multiple sections exist in the structured page definition, htmlByPage must visibly represent those sections rather than collapsing them into one block.",
           "Keep testimonials explicitly sample/generated unless grounded in provided real customer data.",
+          "CRITICAL: htmlByPage should look like a client-ready final website, not a fallback export.",
           "CRITICAL: If payload.palette is provided, the entire website (palette, sections, and htmlByPage styles) MUST use these exact hex colors. Do not suggest or use alternative colors.",
         ],
       },
@@ -1096,10 +1712,10 @@ function normalizeOpenAIResponseShape(response: unknown) {
   const htmlByPage =
     shaped.htmlByPageEntries?.length
       ? Object.fromEntries(
-          shaped.htmlByPageEntries
-            .filter((entry) => entry.slug?.trim() && entry.html?.trim())
-            .map((entry) => [entry.slug!.trim(), entry.html!.trim()]),
-        )
+        shaped.htmlByPageEntries
+          .filter((entry) => entry.slug?.trim() && entry.html?.trim())
+          .map((entry) => [entry.slug!.trim(), entry.html!.trim()]),
+      )
       : shaped.htmlByPage;
 
   return {
@@ -1314,18 +1930,38 @@ export async function regenerateProjectSection(
     `Section regenerated: ${input.sectionId}`,
   );
 
-  return {
-    ...base,
-    sections: base.sections.map((section) =>
+  const sections = base.sections.map((section) =>
+    section.id === input.sectionId
+      ? {
+        ...section,
+        title: `${section.title} Refined for stronger clarity.`,
+        description:
+          input.editInstructions?.trim() ??
+          `${section.description} This updated version sharpens the message and improves specificity.`,
+      }
+      : section,
+  );
+  const pages = base.pages.map((page) => ({
+    ...page,
+    sections: page.sections.map((section) =>
       section.id === input.sectionId
         ? {
-            ...section,
-            title: `${section.title} Refined for stronger clarity.`,
-            description:
-              input.editInstructions?.trim() ??
-              `${section.description} This updated version sharpens the message and improves specificity.`,
-          }
+          ...section,
+          title: `${section.title} Refined for stronger clarity.`,
+          description:
+            input.editInstructions?.trim() ??
+            `${section.description} This updated version sharpens the message and improves specificity.`,
+        }
         : section,
     ),
+  }));
+  const htmlByPage = buildHtmlFromPages(base.contentPlan, pages);
+
+  return {
+    ...base,
+    sections,
+    pages,
+    htmlByPage,
+    projectFiles: buildProjectFilesFromPages(base.contentPlan, pages, htmlByPage),
   };
 }

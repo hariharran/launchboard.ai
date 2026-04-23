@@ -570,6 +570,53 @@ export async function savePreferredDomainForCurrentUser(
   return mapProjectDetail(updatedProject);
 }
 
+export async function saveDeploymentUrlForCurrentUser(
+  projectId: string,
+  deployedUrl: string,
+) {
+  const dbUser = await requirePersistenceContext();
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      userId: dbUser.id,
+    },
+  });
+
+  if (!project) {
+    throw new Error("Project not found.");
+  }
+
+  const updatedProject = await prisma.project.update({
+    where: {
+      id: project.id,
+    },
+    data: {
+      deployedUrl,
+      status: ProjectStatus.READY_TO_EXPORT,
+    },
+    include: {
+      domainChecks: {
+        orderBy: {
+          checkedAt: "desc",
+        },
+      },
+      editHistory: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+      generatedPages: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  return mapProjectDetail(updatedProject);
+}
+
 export async function saveSeoSummaryForCurrentUser(
   projectId: string,
   summary: SeoSummary,

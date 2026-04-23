@@ -48,6 +48,16 @@ export type AIGeneratedPage = {
   sections: AIGeneratedSection[];
 };
 
+export type AIProjectFiles = Record<string, string>;
+
+export type AIProjectTreeNode = {
+  name: string;
+  path: string;
+  type: "folder" | "file";
+  children?: AIProjectTreeNode[];
+  content?: string;
+};
+
 export type AIProjectSnapshot = {
   contentPlan?: AIContentPlan;
   brand?: string;
@@ -67,6 +77,8 @@ export type AIProjectSnapshot = {
   pages?: AIGeneratedPage[];
   sections?: AIGeneratedSection[];
   htmlByPage?: Record<string, string>;
+  projectFiles?: AIProjectFiles;
+  projectTree?: AIProjectTreeNode[];
   domainSuggestions?: string[];
   notes?: string[];
 };
@@ -117,6 +129,8 @@ export type AIGenerationResponse = {
   pages: AIGeneratedPage[];
   sections: AIGeneratedSection[];
   htmlByPage: Record<string, string>;
+  projectFiles?: AIProjectFiles;
+  projectTree?: AIProjectTreeNode[];
   domainSuggestions: string[];
   notes: string[];
 };

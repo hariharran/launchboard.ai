@@ -73,6 +73,7 @@ model Project {
   startupIdea     String
   selectedStyle   String?
   preferredDomain String?
+  deployedUrl     String?
   brandName       String?
   tagline         String?
   audience        String?

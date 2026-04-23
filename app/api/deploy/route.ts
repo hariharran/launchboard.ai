@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+
+import { saveDeploymentUrlForCurrentUser } from "@/actions/projects";
+import { AuthRequiredError } from "@/lib/auth";
 import { createErrorResponse } from "@/lib/api";
 
 export async function POST(req: Request) {
   try {
-    const { site, brandName } = await req.json();
+    const { site, brandName, projectId } = await req.json();
 
     const VERCEL_TOKEN = process.env.CLIENT_DEPLOY_TOKEN;
     const VERCEL_TEAM_ID = process.env.CLIENT_DEPLOY_TEAM_ID;
@@ -15,7 +18,8 @@ export async function POST(req: Request) {
     // 1. Prepare the files for Vercel
     // We deploy as a static site for speed and simplicity in this hackathon
     const files = Object.entries(site.htmlByPage).map(([slug, html]) => {
-      const fileName = slug === "home" ? "index.html" : `${slug}.html`;
+      const normalizedSlug = String(slug || "home").trim() || "home";
+      const fileName = normalizedSlug === "home" ? "index.html" : `${normalizedSlug}/index.html`;
       return {
         file: fileName,
         data: html,
@@ -51,14 +55,31 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json();
+    const url = `https://${data.url}`;
+
+    const savedProject = projectId
+      ? await saveDeploymentUrlForCurrentUser(projectId, url)
+      : null;
 
     return NextResponse.json({
       ok: true,
-      url: `https://${data.url}`,
+      url,
       deploymentId: data.id,
+      project: savedProject,
     });
   } catch (error) {
     console.error("Deployment failed:", error);
+
+    if (error instanceof AuthRequiredError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: error.message,
+        },
+        { status: 401 },
+      );
+    }
+
     return createErrorResponse(error);
   }
 }
