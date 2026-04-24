@@ -17,7 +17,7 @@ export function AppNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-2 rounded-full border border-white/60 bg-white/50 p-1.5 shadow-premium backdrop-blur-xl">
+    <nav className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/60 p-1.5 shadow-premium backdrop-blur-2xl">
       {navItems.map((item) => {
         const isActive =
           pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -29,8 +29,8 @@ export function AppNav() {
             className={cn(
               "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300 active:scale-95",
               isActive
-                ? "bg-slate-950 text-white shadow-premium"
-                : "text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-soft",
+                ? "bg-slate-950 text-white shadow-premium scale-[1.02]"
+                : "text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-soft hover:scale-[1.02]",
             )}
           >
             <item.icon className="h-4 w-4" />

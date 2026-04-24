@@ -84,12 +84,13 @@ export default async function DashboardPage() {
   return (
     <Container className="py-12 animate-reveal">
       <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
-        <section className="surface relative overflow-hidden p-8 sm:p-12">
-          <div className="glass-line absolute inset-x-0 top-0 h-px opacity-50" />
-          <div className="flex-1 min-w-0">
+        <section className="surface gradient-border-top relative overflow-hidden p-8 sm:p-12">
+          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-accent/5 blur-3xl" />
+          <div className="flex-1 min-w-0 relative">
             <div className="eyebrow shadow-sm">Dashboard Home</div>
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
-              Welcome back, <span className="text-glow text-primary">{displayName}</span>
+              Welcome back, <span className="text-gradient">{displayName}</span>
             </h1>
 
             <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -100,14 +101,14 @@ export default async function DashboardPage() {
               <div className="flex items-center gap-3 shrink-0">
                 <Link
                   href="/generator"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-premium transition-all hover:scale-105 hover:bg-slate-800 active:scale-95 whitespace-nowrap"
+                  className="group inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-premium transition-all hover:scale-105 hover:bg-slate-800 active:scale-95 whitespace-nowrap animate-pulse-glow"
                 >
                   Create new project
-                  <ArrowUpRight className="h-4 w-4" />
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
                 <Link
                   href="/projects"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 shadow-soft transition-all hover:bg-slate-50 active:scale-95 whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 shadow-soft transition-all hover:bg-slate-50 hover:shadow-premium active:scale-95 whitespace-nowrap"
                 >
                   View projects
                 </Link>
@@ -120,12 +121,12 @@ export default async function DashboardPage() {
             {cards.map((card, idx) => (
               <div
                 key={card.title}
-                className="group relative overflow-hidden rounded-[32px] border border-slate-200 bg-white/50 p-8 transition-all duration-300 hover:border-primary/20 hover:bg-white hover:shadow-premium"
-                style={{ animationDelay: `${idx * 150}ms` }}
+                className="group relative overflow-hidden rounded-[32px] border border-slate-200 bg-white/50 p-8 transition-all duration-300 hover:border-primary/20 hover:bg-white hover:shadow-premium card-hover-lift animate-reveal"
+                style={{ animationDelay: `${200 + idx * 120}ms` }}
               >
-                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-all group-hover:scale-150 group-hover:bg-primary/10" />
+                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-all duration-500 group-hover:scale-[2] group-hover:bg-primary/10" />
                 <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-soft transition-transform group-hover:scale-110 group-hover:shadow-glow">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-soft transition-all duration-300 group-hover:scale-110 group-hover:shadow-glow group-hover:bg-primary group-hover:text-white">
                     <card.icon className="h-6 w-6" />
                   </div>
                   <div className="mt-8 text-5xl font-black tracking-tighter text-slate-950">{card.value}</div>
@@ -137,8 +138,8 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="surface-dark relative overflow-hidden p-10 text-white shadow-premium">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.15),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.1)$,transparent_40%)]" />
+        <section className="surface-dark relative overflow-hidden p-10 text-white shadow-premium animate-reveal" style={{ animationDelay: '200ms' }}>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.15),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.1),transparent_40%)]" />
           <div className="relative">
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
               <Compass className="h-4 w-4 text-primary" />
@@ -211,8 +212,14 @@ export default async function DashboardPage() {
                 </Link>
               ))
             ) : (
-              <div className="rounded-[32px] border border-dashed border-slate-200 py-16 text-center">
-                <p className="text-lg text-slate-400">Start your first project to populate this feed.</p>
+              <div className="rounded-[32px] border border-dashed border-slate-200 bg-slate-50/30 py-16 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 mb-4">
+                  <Sparkles className="h-7 w-7" />
+                </div>
+                <p className="text-lg font-medium text-slate-400">Start your first project to populate this feed.</p>
+                <Link href="/generator" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline">
+                  Create a project <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             )}
           </div>
@@ -274,18 +281,18 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-8 surface group relative flex flex-col items-start justify-between gap-8 overflow-hidden p-10 md:flex-row md:items-center">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="mt-8 surface gradient-border-top group relative flex flex-col items-start justify-between gap-8 overflow-hidden p-10 md:flex-row md:items-center">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/3 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <div className="relative">
           <div className="eyebrow">Ready To Create</div>
           <h2 className="mt-4 text-4xl text-slate-950 leading-tight">Start your next high-performance project.</h2>
         </div>
         <Link
           href="/generator"
-          className="relative inline-flex items-center gap-2 rounded-full bg-slate-950 px-8 py-4 text-base font-bold text-white shadow-premium transition-all hover:scale-105 hover:bg-slate-800 active:scale-95"
+          className="group/btn relative inline-flex items-center gap-2 rounded-full bg-slate-950 px-8 py-4 text-base font-bold text-white shadow-premium transition-all hover:scale-105 hover:bg-slate-800 active:scale-95 animate-pulse-glow"
         >
           New project
-          <ArrowRight className="h-5 w-5" />
+          <ArrowRight className="h-5 w-5 transition-transform group-hover/btn:translate-x-1" />
         </Link>
       </div>
     </Container>

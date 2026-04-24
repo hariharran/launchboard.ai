@@ -59,8 +59,9 @@ const workflow = [
 export default function HomePage() {
   return (
     <main className="relative overflow-hidden">
-      <div className="hero-orb left-[-80px] top-20 h-64 w-64 bg-sky-300" />
-      <div className="hero-orb right-[-120px] top-40 h-72 w-72 bg-amber-300" />
+      <div className="hero-orb left-[-80px] top-20 h-72 w-72 bg-sky-300/80" />
+      <div className="hero-orb right-[-120px] top-40 h-80 w-80 bg-amber-300/70" />
+      <div className="hero-orb left-[40%] top-[-60px] h-48 w-48 bg-violet-300/40" />
       <SiteHeader />
       <section className="relative pt-8 sm:pt-12">
         <Container className="grid items-center gap-12 pb-24 pt-8 lg:grid-cols-[1.1fr_0.9fr] lg:pb-32 lg:pt-16">
@@ -69,17 +70,18 @@ export default function HomePage() {
               <Sparkles className="h-3.5 w-3.5" />
               AI Website Generator
             </span>
-            <h1 className="mt-6 max-w-3xl text-5xl leading-[0.92] text-foreground sm:text-6xl lg:text-7xl">
-              Launch a premium startup site from a single idea.
+            <h1 className="mt-6 max-w-3xl text-5xl leading-[0.92] sm:text-6xl lg:text-7xl xl:text-8xl">
+              <span className="text-gradient-hero">Launch a premium startup site</span>{" "}
+              <span className="text-foreground">from a single idea.</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
+            <p className="mt-8 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
               Create a conversion-ready homepage, explore domain options, and
               audit SEO in one focused workspace built for founders and fast-moving teams.
             </p>
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <Link className={cn(buttonVariants({ size: "lg" }))} href="/sign-up">
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              <Link className={cn(buttonVariants({ size: "lg" }), "animate-pulse-glow")} href="/sign-up">
                 Start building
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <a
                 className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
@@ -88,19 +90,23 @@ export default function HomePage() {
                 Explore the flow
               </a>
             </div>
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              {stats.map((stat) => (
-                <div key={stat.label} className="surface px-5 py-4">
-                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
+            <div className="mt-12 grid gap-4 sm:grid-cols-3">
+              {stats.map((stat, index) => (
+                <div
+                  key={stat.label}
+                  className="surface card-hover-lift px-5 py-5 animate-reveal"
+                  style={{ animationDelay: `${300 + index * 100}ms` }}
+                >
+                  <div className="text-3xl font-black tracking-tighter text-foreground">{stat.value}</div>
+                  <div className="mt-1.5 text-sm font-medium text-muted-foreground">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="relative animate-reveal [animation-delay:140ms]">
-            <div className="surface relative overflow-hidden p-4 sm:p-6">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-secondary" />
+            <div className="surface-elevated relative overflow-hidden p-4 sm:p-6">
+              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-accent to-secondary" />
               <div className="grid gap-4">
                 <div className="rounded-[24px] bg-slate-950 p-5 text-white shadow-glow">
                   <div className="flex items-center justify-between text-sm text-slate-300">
@@ -188,10 +194,10 @@ export default function HomePage() {
             {featureCards.map((feature, index) => (
               <article
                 key={feature.title}
-                className="surface animate-reveal p-6"
+                className="surface card-hover-lift group animate-reveal p-6"
                 style={{ animationDelay: `${120 + index * 90}ms` }}
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-white group-hover:scale-110 group-hover:shadow-lg">
                   <feature.icon className="h-5 w-5" />
                 </div>
                 <h3 className="mt-5 text-2xl text-foreground">{feature.title}</h3>
@@ -207,7 +213,7 @@ export default function HomePage() {
       <section id="foundation" className="pb-24">
         <Container>
           <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="surface p-8">
+            <div className="surface gradient-border-top p-8">
               <SectionHeading
                 eyebrow="Core workflow"
                 title="A product flow that feels crisp before the backend is fully wired."
@@ -218,9 +224,10 @@ export default function HomePage() {
                 {workflow.map((item, index) => (
                   <div
                     key={item}
-                    className="flex items-start gap-4 rounded-2xl bg-slate-50 px-4 py-4"
+                    className="group flex items-start gap-4 rounded-2xl bg-slate-50 px-4 py-4 transition-all duration-300 hover:bg-white hover:shadow-soft animate-reveal"
+                    style={{ animationDelay: `${200 + index * 100}ms` }}
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white transition-all duration-300 group-hover:bg-primary group-hover:scale-110">
                       {index + 1}
                     </div>
                     <p className="pt-1 text-base leading-7 text-slate-700">{item}</p>

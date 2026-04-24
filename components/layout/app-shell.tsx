@@ -9,7 +9,7 @@ import { Container } from "@/components/ui/container";
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_26%),radial-gradient(circle_at_top_right,rgba(251,146,60,0.12),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,1))]">
-      <header className="sticky top-0 z-40 border-b border-white/50 bg-white/80 backdrop-blur-2xl">
+      <header className="sticky top-0 z-40 border-b border-white/50 bg-white/80 backdrop-blur-2xl gradient-border-top">
         <Container className="flex h-20 items-center justify-between gap-6">
           <Link
             href="/dashboard"

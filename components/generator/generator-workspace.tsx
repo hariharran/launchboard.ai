@@ -1110,18 +1110,18 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
 
   return (
     <div className="grid items-stretch gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-      <section className="surface h-full p-8">
+      <section className="surface gradient-border-top h-full p-8">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="eyebrow">Generator Workspace</div>
-            <h1 className="mt-5 text-4xl text-slate-950">Generate a polished site from one sharp prompt.</h1>
+            <div className="eyebrow animate-reveal">Generator Workspace</div>
+            <h1 className="mt-5 text-4xl text-slate-950 animate-reveal" style={{ animationDelay: '80ms' }}>Generate a polished site from one sharp prompt.</h1>
           </div>
-          <div className="hidden whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 md:block">
-            Demo-ready UX
+          <div className="hidden whitespace-nowrap rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary md:block animate-pulse-glow">
+            AI-Powered
           </div>
         </div>
 
-        <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
+        <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600 animate-reveal" style={{ animationDelay: '140ms' }}>
           Shape the business idea, choose a visual direction, and generate a premium first draft
           with preview, code, structure, domains, and SEO all in one workspace.
         </p>
@@ -1131,7 +1131,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
           <textarea
             value={idea}
             onChange={(event) => setIdea(event.target.value)}
-            className="mt-3 min-h-36 w-full rounded-[24px] border border-slate-300 bg-white px-5 py-4 text-base text-slate-900 shadow-none outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+            className="mt-3 min-h-36 w-full rounded-[24px] border border-slate-200 bg-white px-5 py-4 text-base text-slate-900 shadow-soft outline-none transition-all duration-300 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:shadow-premium"
             placeholder="Describe the startup, the audience, and the kind of brand feel you want."
           />
           <div className="mt-2 text-xs leading-6 text-slate-500">
@@ -1363,7 +1363,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
           </div>
         ) : null}
 
-        <div className="mt-6 rounded-[26px] border border-slate-200 bg-white p-5">
+        <div className="mt-6 rounded-[26px] border border-slate-200 bg-white/90 p-5 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <PencilLine className="h-4 w-4 text-primary" />
             Prompt-driven editing
@@ -1371,7 +1371,7 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
           <textarea
             value={editPrompt}
             onChange={(event) => setEditPrompt(event.target.value)}
-            className="mt-4 min-h-28 w-full rounded-[22px] border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+            className="mt-4 min-h-28 w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-300 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:shadow-soft"
             placeholder="Try: make it more premium, remove pricing, add FAQ, rewrite for enterprise buyers, make the hero stronger"
           />
           <div className="mt-4 flex flex-wrap gap-3">
@@ -1412,11 +1412,19 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
           </div>
         </div>
 
-        <div className="mt-8 rounded-[26px] border border-slate-200 bg-slate-50 p-5">
+        <div className="mt-8 rounded-[26px] border border-slate-200 bg-slate-50/80 p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <LayoutTemplate className="h-4 w-4 text-primary" />
-            Loading steps
+            Generation pipeline
           </div>
+          {isGenerating && (
+            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary via-accent to-secondary transition-all duration-700 ease-out"
+                style={{ width: `${((activeStepIndex + 1) / loadingSteps.length) * 100}%` }}
+              />
+            </div>
+          )}
           <div className="mt-5 grid gap-3">
             {loadingSteps.map((step, index) => {
               const isComplete =
@@ -1430,9 +1438,9 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
                 <div
                   key={step}
                   className={cn(
-                    "flex items-center justify-between rounded-2xl px-4 py-3 transition",
-                    isActive && "bg-white ring-1 ring-blue-200",
-                    isComplete && "bg-emerald-50",
+                    "flex items-center justify-between rounded-2xl px-4 py-3 transition-all duration-300",
+                    isActive && "bg-white ring-1 ring-primary/30 shadow-soft scale-[1.02]",
+                    isComplete && "bg-emerald-50/80",
                     !isActive && !isComplete && "bg-white/80",
                   )}
                 >
@@ -1440,13 +1448,16 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
                     {isComplete ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     ) : isActive ? (
-                      <LoaderCircle className="h-4 w-4 animate-spin text-blue-600" />
+                      <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
                     ) : (
                       <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
                     )}
-                    <span className="font-medium text-slate-900">{step}</span>
+                    <span className={cn("font-medium", isActive ? "text-primary" : "text-slate-900")}>{step}</span>
                   </div>
-                  <span className="text-xs uppercase tracking-[0.22em] text-slate-400">
+                  <span className={cn(
+                    "text-xs uppercase tracking-[0.22em]",
+                    isComplete ? "text-emerald-600 font-bold" : isActive ? "text-primary font-bold" : "text-slate-400"
+                  )}>
                     {isComplete ? "Done" : isActive ? "In progress" : isQueued ? "Queued" : "Ready"}
                   </span>
                 </div>
@@ -1456,12 +1467,12 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
         </div>
       </section>
 
-      <section className="relative flex h-full min-h-[1280px] overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.02] xl:min-h-0">
+      <section className="relative flex h-full min-h-[1280px] overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-b from-slate-950/[0.04] to-slate-950/[0.02] xl:min-h-0">
         <div className="flex h-full w-full flex-col p-4">
           {/* Floating Command Center & Site Navigator Stack */}
           <div className="mb-12 flex flex-col items-center gap-4">
             {/* Primary Editor Dock */}
-            <div className="flex h-12 w-full justify-between items-center gap-6 rounded-full border border-white/10 bg-white/[0.03] pl-2 pr-6 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all hover:border-white/20">
+            <div className="flex h-12 w-full justify-between items-center gap-6 rounded-full border border-white/10 bg-slate-950/80 pl-2 pr-6 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)_inset] transition-all hover:border-white/20 hover:shadow-[0_16px_50px_rgba(0,0,0,0.5)]">
               <button
                 type="button"
                 onClick={vercelUrl && !hasUndeployedChanges ? handleCopyDeployedUrl : handleDeploy}
@@ -1799,9 +1810,9 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
             className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity"
             onClick={() => !isDeploying && setShowDeploySuccess(false)}
           />
-          <div className="relative w-full max-w-xl overflow-hidden rounded-[40px] border border-white/10 bg-slate-900 shadow-2xl transition-all animate-in fade-in zoom-in duration-500">
+          <div className="relative w-full max-w-xl overflow-hidden rounded-[40px] border border-white/10 bg-slate-900 shadow-[0_40px_100px_rgba(0,0,0,0.6)] transition-all animate-in fade-in zoom-in duration-500">
             {/* Animated Gradient Header */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-emerald-500 to-purple-500" />
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-emerald-500 to-purple-500 bg-[length:200%_100%]" style={{ animation: 'gradient-shift 3s ease infinite' }} />
 
             <div className="p-10">
               {deployStep === "deploying" ? (
