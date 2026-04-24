@@ -52,6 +52,8 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 body {
@@ -65,13 +67,30 @@ body {
   font-family: var(--font-sans), sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body * {
+  -webkit-user-select: inherit;
+  user-select: inherit;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 ::selection {
-  background: hsla(var(--primary), 0.18);
+  background: hsla(var(--primary), 0.32);
+  color: hsl(var(--foreground));
 }
 
+
 @layer base {
+
   h1,
   h2,
   h3,
@@ -84,6 +103,22 @@ body {
   p {
     letter-spacing: -0.01em;
   }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  label,
+  li,
+  small,
+  strong,
+  em {
+    -webkit-user-drag: none;
+  }
 }
 
 @layer components {
@@ -93,7 +128,7 @@ body {
   }
 
   .surface-dark {
-    @apply rounded-[30px] border border-white/10 bg-[rgba(2,6,23,0.92)] backdrop-blur-xl;
+    @apply rounded-[30px] border border-white/10 bg-slate-950/90 backdrop-blur-xl;
     box-shadow: var(--shadow-glow);
   }
 
@@ -119,8 +154,8 @@ body {
 
   .glass-line {
     background:
-      linear-gradient(90deg, rgba(255,255,255,0.24), rgba(255,255,255,0.02)),
-      linear-gradient(90deg, rgba(37,99,235,0.18), rgba(251,146,60,0.1));
+      linear-gradient(90deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.02)),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(251, 146, 60, 0.1));
   }
 }
 
@@ -134,7 +169,7 @@ body {
   }
 
   .shadow-premium {
-    box-shadow: 
+    box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.08),
       0 20px 50px -12px rgba(15, 23, 42, 0.12),
       0 0 100px -20px hsla(var(--primary), 0.08);
@@ -172,6 +207,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -179,9 +215,12 @@ body {
 }
 
 @keyframes float-orb {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(0, -18px, 0) scale(1.03);
   }

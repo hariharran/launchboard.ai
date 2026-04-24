@@ -543,10 +543,10 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
       : undefined;
   const previewFrameClassName =
     previewDevice === "Mobile"
-      ? "mx-auto max-w-sm"
+      ? "mx-auto w-full max-w-sm"
       : previewDevice === "Tablet"
-        ? "mx-auto max-w-3xl"
-        : "mx-auto max-w-none";
+        ? "mx-auto w-full max-w-3xl"
+        : "mx-auto w-full max-w-none";
 
   useEffect(() => {
     if (!isGenerating) {
@@ -1109,8 +1109,8 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
   }, [savedProject?.id, seoSummary]);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-      <section className="surface p-8">
+    <div className="grid items-stretch gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+      <section className="surface h-full p-8">
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="eyebrow">Generator Workspace</div>
@@ -1456,8 +1456,8 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
         </div>
       </section>
 
-      <section className="relative h-full min-h-[600px] overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.02]">
-        <div className="p-4">
+      <section className="relative flex h-full min-h-[1280px] overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.02] xl:min-h-0">
+        <div className="flex h-full w-full flex-col p-4">
           {/* Floating Command Center & Site Navigator Stack */}
           <div className="mb-12 flex flex-col items-center gap-4">
             {/* Primary Editor Dock */}
@@ -1564,9 +1564,9 @@ export function GeneratorWorkspace({ initialProject = null }: GeneratorWorkspace
             </div>
           </div>
 
-          <div className={cn("transition-all duration-700 ease-in-out", previewFrameClassName)}>
+          <div className={cn("flex-1 transition-all duration-700 ease-in-out", previewFrameClassName)}>
             {previewMode === "single" ? (
-              <div className="group relative h-[720px] overflow-hidden rounded-[32px] border border-white/15 bg-white shadow-[0_48px_120px_rgba(0,0,0,0.6)] transition-all hover:border-white/20">
+              <div className="group relative h-full min-h-[1280px] overflow-hidden rounded-[32px] border border-white/15 bg-white shadow-[0_48px_120px_rgba(0,0,0,0.6)] transition-all hover:border-white/20 xl:min-h-[720px]">
                 <HtmlPreviewFrame
                   site={generatedSite}
                   activePageSlug={activePreviewPage}

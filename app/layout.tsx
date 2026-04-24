@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 
 import "@/app/globals.css";
+import { TextSelectionGuard } from "@/components/app/text-selection-guard";
 import { clerkAppearance } from "@/lib/clerk-theme";
 import { hasClerkPublicEnv } from "@/lib/env";
 
@@ -39,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <TextSelectionGuard />
         {hasClerkPublicEnv ? (
           <ClerkProvider appearance={clerkAppearance}>{children}</ClerkProvider>
         ) : (
